@@ -25,18 +25,16 @@ jobs:
         run: ./build.ps1
 
       - name: Criar o Release se ainda nao existir
-        shell: powershell
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
         run: |
-          gh release view "${{ inputs.tag }}" --repo "${{ github.repository }}" 2>$null | Out-Null
-          if ($LASTEXITCODE -ne 0) {
-            $notes = ".github/release-notes/${{ inputs.tag }}.md"
-            $extra = if (Test-Path $notes) { @('--notes-file', $notes) } else { @('--notes', '') }
-            gh release create "${{ inputs.tag }}" --repo "${{ github.repository }}" --target "${{ github.sha }}" --title "NitroControl ${{ inputs.tag }}" @extra
-            if ($LASTEXITCODE -ne 0) { exit 1 }
-          }
-          exit 0
+          if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            notes=".github/release-notes/$TAG.md"
+            if [ -f "$notes" ]; then extra=(--notes-file "$notes"); else extra=(--notes ""); fi
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "NitroControl $TAG" "${extra[@]}"
+          fi
 
       - name: Enviar para o Release
         shell: powershell
