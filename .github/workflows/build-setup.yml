@@ -1,5 +1,6 @@
 # Gera o NitroControl-Setup.exe numa maquina Windows do GitHub (o IExpress so existe no Windows)
 # e coloca o arquivo no Release escolhido, substituindo o que estiver la.
+# Se o Release ainda nao existir, ele e criado no commit atual, com as notas de .github/release-notes/<tag>.md.
 name: Gerar Setup
 
 on:
@@ -22,6 +23,20 @@ jobs:
       - name: Gerar NitroControl-Setup.exe
         shell: powershell
         run: ./build.ps1
+
+      - name: Criar o Release se ainda nao existir
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "${{ inputs.tag }}" --repo "${{ github.repository }}" 2>$null | Out-Null
+          if ($LASTEXITCODE -ne 0) {
+            $notes = ".github/release-notes/${{ inputs.tag }}.md"
+            $extra = if (Test-Path $notes) { @('--notes-file', $notes) } else { @('--notes', '') }
+            gh release create "${{ inputs.tag }}" --repo "${{ github.repository }}" --target "${{ github.sha }}" --title "NitroControl ${{ inputs.tag }}" @extra
+            if ($LASTEXITCODE -ne 0) { exit 1 }
+          }
+          exit 0
 
       - name: Enviar para o Release
         shell: powershell
