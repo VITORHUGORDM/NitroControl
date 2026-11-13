@@ -1,0 +1,30 @@
+# Gera o NitroControl-Setup.exe numa maquina Windows do GitHub (o IExpress so existe no Windows)
+# e coloca o arquivo no Release escolhido, substituindo o que estiver la.
+name: Gerar Setup
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag do Release que vai receber o Setup'
+        required: true
+        default: 'v1.0'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Gerar NitroControl-Setup.exe
+        shell: powershell
+        run: ./build.ps1
+
+      - name: Enviar para o Release
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ inputs.tag }}" NitroControl-Setup.exe --clobber --repo "${{ github.repository }}"
