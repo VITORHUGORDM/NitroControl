@@ -1,8 +1,12 @@
 # Instala o NitroControl em Arquivos de Programas, cria atalhos e registra o desinstalador no Windows.
 # Roda de dentro do NitroControl-Setup.exe (os arquivos vem extraidos na mesma pasta deste script).
-if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole('Administrators')) {
+param([switch]$Elevated)
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
+    [Security.Principal.WindowsBuiltInRole]::Administrator)   # enum: funciona em qualquer idioma ("Administradores" no pt-BR)
+if (-not $isAdmin) {
+    if ($Elevated) { exit 1 }   # ja tentou elevar uma vez e mesmo assim nao e admin: para aqui, sem loop
     # -Wait: o Setup.exe apaga a pasta temporaria assim que este processo termina
-    try { $p = Start-Process powershell "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs -Wait -PassThru; exit $p.ExitCode }
+    try { $p = Start-Process powershell "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$PSCommandPath`" -Elevated" -Verb RunAs -Wait -PassThru; exit $p.ExitCode }
     catch { exit 1 }
 }
 $ErrorActionPreference = 'Stop'

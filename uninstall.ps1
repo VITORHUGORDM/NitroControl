@@ -1,6 +1,10 @@
 # Remove o NitroControl: tarefas, atalhos, registro, configuracoes e a pasta de instalacao.
-if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole('Administrators')) {
-    try { Start-Process powershell "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs } catch {}
+param([switch]$Elevated)
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
+    [Security.Principal.WindowsBuiltInRole]::Administrator)   # enum: funciona em qualquer idioma ("Administradores" no pt-BR)
+if (-not $isAdmin) {
+    if ($Elevated) { exit 1 }   # ja tentou elevar uma vez e mesmo assim nao e admin: para aqui, sem loop
+    try { Start-Process powershell "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$PSCommandPath`" -Elevated" -Verb RunAs } catch {}
     exit
 }
 Add-Type -AssemblyName System.Windows.Forms
