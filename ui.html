@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>NitroControl</title>
+<link rel="icon" href="/favicon.ico">
+<style>
+:root{
+  --bg:#0a0705; --panel:rgba(18,12,9,.88); --panel2:rgba(30,19,13,.9); --line:#3b2416; --line2:#5a3018;
+  --accent:#ff5b1a; --accent2:#ff1e3c; --text:#f4ece6; --dim:#a08e82; --mute:#6e5d52;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:Bahnschrift,"Segoe UI",sans-serif; color:var(--text); overflow:hidden; user-select:none;
+  background:
+    radial-gradient(ellipse 60% 70% at 70% 60%, rgba(255,90,26,.28), transparent 70%),
+    radial-gradient(ellipse 50% 60% at 15% 80%, rgba(170,50,10,.25), transparent 70%),
+    repeating-linear-gradient(115deg, rgba(255,120,40,.035) 0 2px, transparent 2px 90px),
+    linear-gradient(160deg,#120a06,#1f0d05 55%,#0a0604);
+  background-color:var(--bg);
+}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+
+/* ---------- topo ---------- */
+header{height:52px;display:flex;align-items:center;gap:6px;padding:0 22px;background:rgba(0,0,0,.75);border-bottom:1px solid #1d120c}
+.logo{width:26px;height:26px;margin-right:18px;color:var(--accent)}
+nav{display:flex;height:100%}
+nav button{position:relative;padding:0 16px;font-size:17px;color:var(--dim);transition:color .15s}
+nav button:hover{color:var(--text)}
+nav button.on{color:#fff;font-weight:600}
+nav button.on::after{content:"";position:absolute;left:10px;right:10px;bottom:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.power{margin-left:auto;display:flex;align-items:center;gap:8px;color:var(--dim);font-size:14px}
+.power svg{width:20px;height:20px}
+.dot{width:8px;height:8px;border-radius:50%;background:#3c3;box-shadow:0 0 8px #3c3}
+.dot.off{background:#c33;box-shadow:0 0 8px #c33}
+
+/* ---------- layout ---------- */
+.wrap{display:flex;height:calc(100% - 52px)}
+main{flex:1;padding:26px 30px;overflow:auto;position:relative}
+aside{width:310px;padding:18px 16px;background:rgba(45,20,6,.55);border-left:1px solid #2a160a;overflow:auto}
+.page{display:none;animation:fade .25s ease}
+.page.on{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+.panel{
+  position:relative;background:var(--panel);border:1px solid var(--line);
+  clip-path:polygon(0 0,calc(100% - 18px) 0,100% 18px,100% 100%,18px 100%,0 calc(100% - 18px));
+}
+.panel::before{content:"";position:absolute;top:0;left:24px;width:160px;height:5px;
+  background:repeating-linear-gradient(115deg,var(--accent) 0 3px,transparent 3px 7px);opacity:.75}
+.ptitle{display:flex;align-items:center;gap:10px;padding:16px 22px 12px;color:var(--accent);font-size:17px;border-bottom:1px solid var(--line)}
+.ptitle svg{width:20px;height:20px}
+
+/* ---------- gauges ---------- */
+.gauge{position:relative;display:grid;place-items:center}
+.gauge svg{width:100%;height:100%;overflow:visible}
+.gauge .val{position:absolute;text-align:center;line-height:1}
+.gauge .num{font-size:44px;font-weight:700;letter-spacing:1px}
+.gauge .unit{font-size:15px;color:var(--dim);margin-top:4px}
+.gauge .lbl{position:absolute;right:6px;bottom:2px;font-size:15px;color:var(--text)}
+.arc{transition:stroke-dasharray .6s ease}
+
+/* ---------- home ---------- */
+.home{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr) minmax(0,300px);gap:22px;align-items:start}
+.freq{padding:24px}
+.freq .gauge{width:100%;max-width:290px;aspect-ratio:1;margin:auto}
+.freq .switch{display:flex;justify-content:center;gap:10px;font-size:22px;margin-bottom:2px}
+.freq .switch button{color:var(--mute);font-size:22px}
+.freq .switch button.on{color:#fff}
+.freq .sub{font-size:13px;color:var(--dim)}
+.freq .big{font-size:46px;font-weight:700;margin:8px 0}
+.freq .big small{font-size:14px;color:var(--dim);font-weight:400}
+.sysmode{text-align:center;padding-top:6px}
+.brand{font-size:clamp(20px,2.6vw,32px);font-weight:700;letter-spacing:2px;background:linear-gradient(90deg,var(--accent2),var(--accent) 55%,#ffb070);-webkit-background-clip:text;color:transparent}
+.sysmode .sub{color:var(--dim);font-size:14px;margin-top:6px}
+.sysmode .mode{font-size:26px;margin-top:4px}
+.temps{padding:18px 26px;display:flex;flex-direction:column;gap:4px;align-items:center}
+.temps .gauge{width:200px;height:200px}
+.temps .num{font-size:46px}
+
+/* ---------- cards de modo ---------- */
+.tabs2{display:flex;gap:26px;border-bottom:1px solid var(--line2);margin-bottom:18px}
+.tabs2 span{padding:10px 2px;font-size:16px}
+.cards{display:flex;justify-content:center;gap:18px;padding:12px 0 26px}
+.card{
+  width:190px;height:136px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+  background:linear-gradient(150deg,#2a2522,#151210);border:1px solid #3c3430;color:#cfc5bf;font-size:17px;
+  transition:transform .12s,background .2s,border-color .2s;
+}
+.card svg{width:56px;height:56px}
+.card:hover:not(:disabled){transform:translateY(-2px);border-color:var(--accent)}
+.card.on{background:linear-gradient(150deg,#ff6a20,#c9420c);border-color:#ff8a4a;color:#fff;box-shadow:0 0 28px rgba(255,91,26,.35)}
+.card:disabled{opacity:.35;cursor:not-allowed}
+.acline{text-align:center;color:var(--accent);font-size:16px;padding-top:18px}
+.desc{text-align:center;padding:18px;border-top:1px solid var(--line);color:var(--dim);font-size:14px}
+.desc b{display:block;color:var(--text);font-weight:600;margin-bottom:4px}
+.duo{display:grid;grid-template-columns:1fr 1px 1fr;gap:26px;padding:22px 30px;border-top:1px solid var(--line)}
+.duo .sep{background:var(--line)}
+.duo .row{display:flex;align-items:center;justify-content:center;gap:24px}
+.duo .gauge{width:170px;height:170px}
+.duo .info{text-align:right}
+.duo .info h3{font-size:22px;font-weight:400;margin-bottom:14px}
+.duo .info .k{font-size:13px;color:var(--dim)}
+.duo .info .v{font-size:38px;font-weight:700;line-height:1.1}
+.duo .info .u{font-size:13px;color:var(--dim);margin-bottom:10px}
+
+/* ---------- ventoinhas ---------- */
+.fans{display:grid;grid-template-columns:1fr 1fr;gap:26px;padding:6px 40px 30px}
+.fanbox{background:var(--panel2);border:1px solid var(--line);padding:20px 24px}
+.fanbox h3{font-size:18px;font-weight:400;display:flex;justify-content:space-between;align-items:center}
+.fanbox h3 .rpm{color:var(--accent);font-size:26px;font-weight:700}
+.fanbox h3 .rpm small{font-size:13px;color:var(--dim);font-weight:400}
+.spin{width:34px;height:34px;color:var(--accent);animation:spin linear infinite;animation-duration:0s}
+@keyframes spin{to{transform:rotate(360deg)}}
+.slider{margin-top:20px}
+.slider .top{display:flex;justify-content:space-between;color:var(--dim);font-size:14px;margin-bottom:8px}
+.slider .top b{color:var(--text);font-size:18px}
+input[type=range]{-webkit-appearance:none;width:100%;height:6px;background:linear-gradient(90deg,var(--accent2),var(--accent) var(--p,50%),#3a2a22 var(--p,50%));border-radius:3px;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#fff;border:3px solid var(--accent);box-shadow:0 0 10px rgba(255,91,26,.6);cursor:pointer}
+input[type=range]:disabled{opacity:.35}
+input[type=range]:disabled::-webkit-slider-thumb{cursor:not-allowed}
+.hint{color:var(--mute);font-size:13px;margin-top:12px}
+
+/* ---------- bateria ---------- */
+.settings{display:grid;grid-template-columns:300px 1fr;gap:26px}
+.menu{background:rgba(70,30,10,.45);padding:22px 0}
+.menu div{padding:9px 36px;color:var(--dim);font-size:15px;position:relative}
+.menu div.on{color:#fff}
+.menu div.on::before{content:"";position:absolute;left:0;top:50%;width:22px;height:3px;background:var(--accent)}
+.opt{display:flex;gap:14px;align-items:flex-start;padding:14px 24px;cursor:pointer;width:100%;text-align:left}
+.opt:hover{background:rgba(255,91,26,.06)}
+.radio{flex:none;width:18px;height:18px;margin-top:14px;border:2px solid var(--accent);transform:rotate(45deg);display:grid;place-items:center}
+.radio::after{content:"";width:8px;height:8px;background:var(--accent);opacity:0;transition:opacity .15s}
+.opt.on .radio::after{opacity:1}
+.opt .ic{flex:none;width:40px;height:44px;background:#3a1a0c;display:grid;place-items:center;color:var(--accent);font-weight:700;font-size:14px}
+.opt .t{font-size:16px;margin-top:4px}
+.opt .d{color:var(--dim);font-size:14px;margin-top:4px;line-height:1.4}
+.toggle{flex:none;width:44px;height:22px;border-radius:11px;background:#3a2a22;position:relative;transition:background .2s}
+.toggle::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#bba;transition:left .2s,background .2s}
+.opt.on .toggle{background:var(--accent)}
+.opt.on .toggle::after{left:25px;background:#fff}
+.srcmodes{flex:none;display:grid;grid-template-columns:auto auto;gap:4px 14px;font-size:14px;color:var(--dim)}
+.srcmodes b{color:var(--text);font-weight:600}
+.srcmodes:empty{display:none}
+.battbar{margin:6px 24px 20px;display:flex;align-items:center;gap:16px;color:var(--dim);font-size:14px}
+.battbar .bar{flex:1;height:10px;background:#2c1d15;position:relative;overflow:hidden}
+.battbar .bar i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,var(--accent2),var(--accent));transition:width .6s}
+.battbar .bar .cap{position:absolute;top:-3px;bottom:-3px;width:2px;background:#fff;left:80%;opacity:0}
+.battbar b{color:var(--text);font-size:20px}
+
+/* ---------- lateral ---------- */
+.side{margin-bottom:16px;background:rgba(15,9,6,.75);border:1px solid #2c180c}
+.side h4{color:var(--accent);font-weight:400;font-size:16px;padding:12px 14px 10px;border-bottom:1px solid #2c180c;
+  background:linear-gradient(90deg,transparent 70%,rgba(255,91,26,.12)),repeating-linear-gradient(115deg,transparent 0 6px,rgba(255,91,26,.12) 6px 8px) right bottom/80px 4px no-repeat}
+.kv{display:flex;align-items:center;gap:10px;padding:9px 14px;font-size:14px;width:100%}
+.kv:hover{background:rgba(255,91,26,.07)}
+.kv svg{width:18px;height:18px;color:var(--dim)}
+.kv b{margin-left:auto;font-weight:600}
+.kv b::after{content:" ›";color:var(--accent)}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px}
+.cell{background:rgba(255,255,255,.04);padding:7px 8px;min-height:72px;position:relative}
+.cell .n{font-size:13px;color:var(--text)}
+.cell .v{font-size:24px;font-weight:700;text-align:center;margin-top:4px}
+.cell .u{position:absolute;right:6px;bottom:4px;font-size:11px;color:var(--dim)}
+.cell.hot .v{color:#ff5a4a}
+
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(80px);background:#2a0e08;border:1px solid var(--accent2);
+  color:#fff;padding:12px 20px;font-size:14px;transition:transform .25s;z-index:9}
+.toast.show{transform:translateX(-50%)}
+.offline{position:fixed;inset:52px 0 0;background:rgba(0,0,0,.8);display:none;place-items:center;text-align:center;font-size:18px;z-index:8}
+.offline.show{display:grid}
+.offline p{color:var(--dim);font-size:14px;margin-top:8px}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <linearGradient id="hot" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffb21a"/><stop offset=".55" stop-color="#ff5b1a"/><stop offset="1" stop-color="#ff1e3c"/>
+    </linearGradient>
+    <symbol id="i-moon" viewBox="0 0 48 48"><circle cx="24" cy="24" r="19" fill="none" stroke="currentColor" stroke-width="3"/><path d="M27 12a12 12 0 1 0 9 19 13 13 0 0 1-9-19z" fill="currentColor"/><path d="M36 13l1 2 2 1-2 1-1 2-1-2-2-1 2-1z" fill="currentColor"/></symbol>
+    <symbol id="i-bal" viewBox="0 0 48 48"><path d="M6 10h36L24 40z M14 15h20L24 32z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/><path d="M6 10l18 13 18-13" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/></symbol>
+    <symbol id="i-perf" viewBox="0 0 48 48"><path d="M8 32a17 17 0 1 1 32 0" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/><path d="M24 30l11-13" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><circle cx="24" cy="30" r="4" fill="currentColor"/><path d="M4 22h8M3 28h7M6 34h6" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></symbol>
+    <symbol id="i-fan" viewBox="0 0 48 48"><circle cx="24" cy="24" r="4" fill="currentColor"/><path d="M24 20c-2-8 0-15 7-15 5 0 6 7-1 13M28 24c8-2 15 0 15 7 0 5-7 6-13-1M24 28c2 8 0 15-7 15-5 0-6-7 1-13M20 24c-8 2-15 0-15-7 0-5 7-6 13 1" fill="currentColor"/></symbol>
+    <symbol id="i-auto" viewBox="0 0 48 48"><path d="M10 38L24 8l14 30M15 28h18" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-max" viewBox="0 0 48 48"><path d="M27 4L10 27h12l-3 17 18-24H25z" fill="currentColor"/></symbol>
+    <symbol id="i-custom" viewBox="0 0 48 48"><path d="M10 12h28M10 24h28M10 36h28" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><circle cx="18" cy="12" r="4.5" fill="currentColor"/><circle cx="31" cy="24" r="4.5" fill="currentColor"/><circle cx="22" cy="36" r="4.5" fill="currentColor"/></symbol>
+    <symbol id="i-mode" viewBox="0 0 24 24"><path d="M3 3h8v8H3zM13 3h8v8h-8zM3 13h8v8H3zM13 13h8v8h-8z" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+    <symbol id="i-plug" viewBox="0 0 24 24"><path d="M9 2v5M15 2v5M6 7h12v4a6 6 0 0 1-12 0zM12 17v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="i-batt" viewBox="0 0 24 24"><rect x="3" y="7" width="16" height="10" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M21 10v4" stroke="currentColor" stroke-width="2"/></symbol>
+  </defs>
+</svg>
+
+<header>
+  <svg class="logo" viewBox="0 0 24 24"><path d="M5 3l7 6 7-6v18l-7-6-7 6z" fill="currentColor"/></svg>
+  <nav>
+    <button data-p="home" class="on">Início</button>
+    <button data-p="mode">Modo</button>
+    <button data-p="fan">Ventoinhas</button>
+    <button data-p="batt">Configurações</button>
+  </nav>
+  <div class="power"><span class="dot" id="conn"></span><svg><use href="#i-plug" id="pwrIcon"/></svg><span id="pwrTxt">—</span></div>
+</header>
+
+<div class="wrap">
+<main>
+
+  <!-- INÍCIO -->
+  <section class="page on" id="p-home">
+    <div class="home">
+      <div class="panel freq">
+        <div class="gauge" id="gFreq">
+          <div class="val">
+            <div class="switch"><button data-f="gpu" class="on">GPU</button><span style="color:var(--mute)">|</span><button data-f="cpu">CPU</button></div>
+            <div class="sub">Frequência</div>
+            <div class="big"><span id="fClk">0</span> <small>MHz</small></div>
+            <div style="font-size:20px"><span id="fUse">0</span>%</div>
+          </div>
+        </div>
+      </div>
+      <div class="sysmode">
+        <div class="brand">NITROCONTROL</div>
+        <div class="sub">Modo do sistema</div>
+        <div class="mode" id="hMode">—</div>
+      </div>
+      <div class="panel temps">
+        <div class="gauge" id="gGpuT"></div>
+        <div class="gauge" id="gCpuT"></div>
+        <div class="gauge" id="gSysT"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODO -->
+  <section class="page" id="p-mode">
+    <div class="tabs2"><span style="border-bottom:3px solid var(--accent)">Modo de operação</span></div>
+    <div class="panel">
+      <div class="acline" id="acLine">—</div>
+      <div class="cards" id="profCards">
+        <button class="card" data-v="0"><svg><use href="#i-moon"/></svg>Silencioso</button>
+        <button class="card" data-v="1"><svg><use href="#i-bal"/></svg>Equilibrado</button>
+        <button class="card" data-v="4"><svg><use href="#i-perf"/></svg>Desempenho</button>
+      </div>
+      <button class="opt" id="switchOpt" style="align-items:center;border-top:1px solid var(--line);padding:16px 40px">
+        <span class="toggle"></span>
+        <span style="flex:1"><div class="t">Troca automática pela fonte de energia</div><div class="d">Ao tirar o carregador, muda para o modo da bateria e deixa as ventoinhas no automático. Ao conectar, volta para o modo da tomada com suas ventoinhas. O modo que você escolher fica salvo para a fonte atual.</div></span>
+        <span class="srcmodes" id="srcModes"></span>
+      </button>
+      <div class="duo">
+        <div class="row"><div class="gauge" id="gGpuU"></div><div class="info"><h3>GPU</h3><div class="k">Clock</div><div class="v" id="mGpuClk">0</div><div class="u">MHz</div><div class="k">Uso</div><div class="v" id="mGpuUse" style="font-size:24px">0%</div></div></div>
+        <div class="sep"></div>
+        <div class="row"><div class="gauge" id="gCpuU"></div><div class="info"><h3>CPU</h3><div class="k">Clock</div><div class="v" id="mCpuClk">0</div><div class="u">MHz</div><div class="k">Uso</div><div class="v" id="mCpuUse" style="font-size:24px">0%</div></div></div>
+      </div>
+      <div class="desc" id="profDesc"></div>
+    </div>
+  </section>
+
+  <!-- VENTOINHAS -->
+  <section class="page" id="p-fan">
+    <div class="tabs2"><span style="border-bottom:3px solid var(--accent)">Controle das ventoinhas</span></div>
+    <div class="panel">
+      <div class="cards" id="fanCards" style="padding-top:30px">
+        <button class="card" data-v="1"><svg><use href="#i-auto"/></svg>Automático</button>
+        <button class="card" data-v="2"><svg><use href="#i-max"/></svg>Máximo</button>
+        <button class="card" data-v="3"><svg><use href="#i-custom"/></svg>Personalizado</button>
+      </div>
+      <div class="fans">
+        <div class="fanbox">
+          <h3><span style="display:flex;gap:12px;align-items:center"><svg class="spin" id="spinCpu"><use href="#i-fan"/></svg>CPU</span><span class="rpm"><span id="rpmCpu">0</span> <small>RPM</small></span></h3>
+          <div class="slider"><div class="top"><span>Velocidade</span><b><span id="vCpu">50</span>%</b></div><input type="range" min="20" max="100" step="5" id="sCpu" data-k="cpuPct"></div>
+        </div>
+        <div class="fanbox">
+          <h3><span style="display:flex;gap:12px;align-items:center"><svg class="spin" id="spinGpu"><use href="#i-fan"/></svg>GPU</span><span class="rpm"><span id="rpmGpu">0</span> <small>RPM</small></span></h3>
+          <div class="slider"><div class="top"><span>Velocidade</span><b><span id="vGpu">50</span>%</b></div><input type="range" min="20" max="100" step="5" id="sGpu" data-k="gpuPct"></div>
+        </div>
+      </div>
+      <div class="desc" id="fanDesc"></div>
+    </div>
+  </section>
+
+  <!-- BATERIA -->
+  <section class="page" id="p-batt">
+    <div class="settings">
+      <div class="menu"><div class="on">Bateria e carga</div><div class="on">Inicialização</div></div>
+      <div style="display:flex;flex-direction:column;gap:18px">
+      <div class="panel">
+        <div class="ptitle"><svg><use href="#i-batt"/></svg>Bateria e carga</div>
+        <div style="padding:18px 24px 6px;font-size:15px">Modo de carga da bateria</div>
+        <div id="battOpts">
+          <button class="opt" data-v="1"><span class="radio"></span><span class="ic">80</span><span><div class="t">Carga otimizada</div><div class="d">[Recomendado]<br>Para reduzir o desgaste da bateria, a carga é limitada a 80%.</div></span></button>
+          <button class="opt" data-v="0"><span class="radio"></span><span class="ic">▲</span><span><div class="t">Carga completa</div><div class="d">Carrega até 100% para mais tempo de uso longe da tomada.</div></span></button>
+        </div>
+        <div style="padding:16px 24px 8px;font-size:15px;border-top:1px solid var(--line);margin-top:10px">Nível atual</div>
+        <div class="battbar"><b id="battPct">0%</b><div class="bar"><i id="battFill"></i><span class="cap" id="battCap"></span></div><span id="battState">—</span></div>
+      </div>
+      <div class="panel">
+        <div class="ptitle"><svg><use href="#i-plug"/></svg>Inicialização</div>
+        <button class="opt" id="autoOpt" style="align-items:center">
+          <span class="toggle"></span>
+          <span><div class="t">Iniciar com o Windows</div><div class="d">Reaplica suas últimas escolhas de modo, ventoinhas e bateria ao entrar no Windows e ao sair da suspensão, sem abrir a janela.</div></span>
+        </button>
+      </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<aside>
+  <div class="side">
+    <h4>Perfil atual</h4>
+    <button class="kv" data-go="mode"><svg><use href="#i-mode"/></svg>Modo<b id="sMode">—</b></button>
+    <button class="kv" data-go="fan"><svg><use href="#i-fan"/></svg>Ventoinha<b id="sFan">—</b></button>
+    <button class="kv" data-go="batt"><svg><use href="#i-batt"/></svg>Carga<b id="sBatt">—</b></button>
+  </div>
+  <div class="side">
+    <h4>Monitoramento</h4>
+    <div class="grid">
+      <div class="cell"><div class="n">GPU</div><div class="v" id="cGpuU">0</div><div class="u">%</div></div>
+      <div class="cell" id="cellGpuT"><div class="n">GPU</div><div class="v" id="cGpuT">0</div><div class="u">°C</div></div>
+      <div class="cell"><div class="n">CPU</div><div class="v" id="cCpuU">0</div><div class="u">%</div></div>
+      <div class="cell" id="cellCpuT"><div class="n">CPU</div><div class="v" id="cCpuT">0</div><div class="u">°C</div></div>
+      <div class="cell"><div class="n">Sistema</div><div class="v" id="cSysT">0</div><div class="u">°C</div></div>
+      <div class="cell"><div class="n">RAM</div><div class="v" id="cRam">0</div><div class="u">%</div></div>
+    </div>
+  </div>
+  <div class="side">
+    <h4>Ventoinhas</h4>
+    <div class="grid" style="grid-template-columns:1fr 1fr">
+      <div class="cell"><div class="n">CPU</div><div class="v" id="cCpuF">0</div><div class="u">RPM</div></div>
+      <div class="cell"><div class="n">GPU</div><div class="v" id="cGpuF">0</div><div class="u">RPM</div></div>
+    </div>
+  </div>
+</aside>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="offline" id="offline"><div>Sem conexão com o serviço do NitroControl<p>Feche esta janela e abra o NitroControl de novo.</p></div></div>
+
+<script>
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const TOKEN = new URLSearchParams(location.search).get('t');
+const PROFILES = {
+  0: ['Silencioso', 'Ventoinhas mais silenciosas e menor consumo de energia. Ideal para estudar, navegar e assistir vídeos.'],
+  1: ['Equilibrado', 'Equilíbrio entre desempenho, temperatura e ruído para o uso do dia a dia.'],
+  4: ['Desempenho', 'Para jogos e renderização. CPU e GPU com limites de potência maiores. Exige o carregador conectado.']
+};
+const FANS = {
+  1: ['Automático', 'O sistema ajusta a velocidade das ventoinhas de acordo com a temperatura.'],
+  2: ['Máximo', 'Ventoinhas na velocidade máxima para o maior resfriamento possível. Mais ruído.'],
+  3: ['Personalizado', 'Você escolhe a velocidade de cada ventoinha. Mínimo de 20% para manter o notebook ventilado.']
+};
+let S = null, freqSrc = 'gpu', busy = false;
+
+/* ---------- gauge SVG ---------- */
+function gauge(el, {label = '', unit = '', max = 100, big = false} = {}) {
+  const r = 80, C = 2 * Math.PI * r, L = C * 0.75;
+  el.innerHTML = `
+    <svg viewBox="0 0 200 200">
+      <circle cx="100" cy="100" r="96" fill="none" stroke="#3a2418" stroke-width="2" stroke-dasharray="2 5" transform="rotate(135 100 100)" pathLength="400" style="stroke-dasharray:1.5 4.2 ;"/>
+      <circle cx="100" cy="100" r="${r}" fill="none" stroke="#2a1a12" stroke-width="${big ? 4 : 16}" stroke-dasharray="${L} ${C}" transform="rotate(135 100 100)" stroke-linecap="round"/>
+      <circle class="arc" cx="100" cy="100" r="${r}" fill="none" stroke="url(#hot)" stroke-width="${big ? 6 : 16}" stroke-dasharray="0 ${C}" transform="rotate(135 100 100)" stroke-linecap="round"/>
+      ${big ? `<circle cx="100" cy="100" r="68" fill="none" stroke="#ff5b1a" stroke-opacity=".5" stroke-width="2"/>` : `<circle cx="100" cy="100" r="64" fill="#0d0806"/>`}
+    </svg>` + (el.querySelector('.val') ? '' : `<div class="val"><div class="num">0</div><div class="unit">${unit}</div></div><div class="lbl">${label}</div>`);
+  const arc = el.querySelector('.arc'), num = el.querySelector('.num');
+  return v => {
+    arc.style.strokeDasharray = `${L * Math.max(0, Math.min(1, v / max))} ${C}`;
+    if (num) num.textContent = v;
+  };
+}
+// o gauge de frequência mantém o conteúdo central já escrito no HTML
+const freqVal = $('#gFreq .val'); const gFreq = gauge($('#gFreq'), {big: true}); $('#gFreq').appendChild(freqVal);
+const gGpuT = gauge($('#gGpuT'), {label: 'GPU', unit: '°C'});
+const gCpuT = gauge($('#gCpuT'), {label: 'CPU', unit: '°C'});
+const gSysT = gauge($('#gSysT'), {label: 'Sistema', unit: '°C'});
+const gGpuU = gauge($('#gGpuU')), gCpuU = gauge($('#gCpuU'));
+$('#gGpuU .unit').textContent = $('#gCpuU .unit').textContent = '%';
+
+/* ---------- API ---------- */
+async function api(path, opts) {
+  const r = await fetch(path + (path.includes('?') ? '&' : '?') + 't=' + TOKEN, opts);
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error || r.status);
+  return j;
+}
+async function poll() {
+  if (busy) return;
+  try { S = await api('/api/state'); render(); online(true); } catch { online(false); }
+}
+async function set(k, v) {
+  busy = true;
+  try { S = await api(`/api/set?k=${k}&v=${v}`, {method: 'POST'}); render(); }
+  catch (e) { toast(e.message); }
+  finally { busy = false; }
+}
+function online(ok) { $('#conn').classList.toggle('off', !ok); $('#offline').classList.toggle('show', !ok && S !== null); }
+let tt; function toast(m) { const t = $('#toast'); t.textContent = m; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 4000); }
+
+/* ---------- render ---------- */
+const txt = (id, v) => { const e = $(id); if (e.textContent != v) e.textContent = v; };
+function render() {
+  const s = S, prof = PROFILES[s.profile], fan = FANS[s.fanMode];
+  // topo
+  txt('#pwrTxt', s.ac ? `Carregador conectado · ${s.batt}%` : `Na bateria · ${s.batt}%`);
+  $('#pwrIcon').setAttribute('href', s.ac ? '#i-plug' : '#i-batt');
+  // início
+  const f = freqSrc === 'gpu' ? [s.gpuClk, s.gpuUse] : [s.cpuClk, s.cpuUse];
+  txt('#fClk', f[0]); txt('#fUse', f[1]); gFreq(f[1]);
+  txt('#hMode', prof ? prof[0] : `Desconhecido (${s.profile})`);
+  gGpuT(s.gpuT); gCpuT(s.cpuT); gSysT(s.sysT);
+  // modo
+  txt('#acLine', s.ac ? 'Carregador conectado' : 'Na bateria — o modo Desempenho precisa do carregador');
+  $$('#profCards .card').forEach(b => { b.classList.toggle('on', +b.dataset.v === s.profile); b.disabled = +b.dataset.v === 4 && !s.ac; });
+  $('#profDesc').innerHTML = prof ? `<b>Sobre o modo ${prof[0]}</b>${prof[1]}` : '';
+  gGpuU(s.gpuUse); gCpuU(s.cpuUse);
+  txt('#mGpuClk', s.gpuClk); txt('#mCpuClk', s.cpuClk); txt('#mGpuUse', s.gpuUse + '%'); txt('#mCpuUse', s.cpuUse + '%');
+  // ventoinhas
+  $$('#fanCards .card').forEach(b => b.classList.toggle('on', +b.dataset.v === s.fanMode));
+  $('#fanDesc').innerHTML = fan ? `<b>${fan[0]}</b>${fan[1]}` : '';
+  txt('#rpmCpu', s.cpuFan); txt('#rpmGpu', s.gpuFan);
+  [['#sCpu', '#vCpu', s.cpuPct], ['#sGpu', '#vGpu', s.gpuPct]].forEach(([sl, lb, v]) => {
+    const el = $(sl);
+    el.disabled = s.fanMode !== 3;
+    if (document.activeElement !== el || el.disabled) { el.value = v; txt(lb, v); }
+    el.style.setProperty('--p', ((el.value - 20) / 80 * 100) + '%');
+  });
+  $('#spinCpu').style.animationDuration = s.cpuFan ? (60000 / s.cpuFan * 8) + 'ms' : '0s';
+  $('#spinGpu').style.animationDuration = s.gpuFan ? (60000 / s.gpuFan * 8) + 'ms' : '0s';
+  // bateria
+  const hasBatt = s.battLimit !== null;
+  $$('#battOpts .opt').forEach(b => { b.classList.toggle('on', hasBatt && +b.dataset.v === (s.battLimit ? 1 : 0)); b.disabled = !hasBatt; });
+  txt('#battPct', s.batt + '%'); $('#battFill').style.width = s.batt + '%';
+  $('#battCap').style.opacity = s.battLimit ? .8 : 0;
+  txt('#battState', !s.ac ? 'Descarregando' : s.batt >= 100 ? 'Carregada' : s.battLimit && s.batt >= 79 ? 'Limitada a 80%' : 'Carregando');
+  $('#autoOpt').classList.toggle('on', !!s.autostart);
+  $('#switchOpt').classList.toggle('on', !!s.autoSwitch);
+  const pn = v => PROFILES[v] ? PROFILES[v][0] : '—';
+  const sm = s.autoSwitch ? `<span>Na tomada</span><b>${pn(s.profileAC)}</b><span>Na bateria</span><b>${pn(s.profileDC)}</b>` : '';
+  if ($('#srcModes').innerHTML !== sm) $('#srcModes').innerHTML = sm;
+  // lateral
+  txt('#sMode', prof ? prof[0] : '—'); txt('#sFan', fan ? fan[0] : '—');
+  txt('#sBatt', hasBatt ? (s.battLimit ? 'Otimizada' : 'Completa') : 'N/D');
+  txt('#cGpuU', s.gpuUse); txt('#cGpuT', s.gpuT); txt('#cCpuU', s.cpuUse); txt('#cCpuT', s.cpuT);
+  txt('#cSysT', s.sysT); txt('#cRam', s.ram.toFixed(1)); txt('#cCpuF', s.cpuFan); txt('#cGpuF', s.gpuFan);
+  $('#cellGpuT').classList.toggle('hot', s.gpuT >= 85); $('#cellCpuT').classList.toggle('hot', s.cpuT >= 90);
+}
+
+/* ---------- eventos ---------- */
+function go(p) {
+  $$('nav button').forEach(b => b.classList.toggle('on', b.dataset.p === p));
+  $$('.page').forEach(x => x.classList.toggle('on', x.id === 'p-' + p));
+}
+$$('nav button').forEach(b => b.onclick = () => go(b.dataset.p));
+$$('[data-go]').forEach(b => b.onclick = () => go(b.dataset.go));
+$$('#gFreq [data-f]').forEach(b => b.onclick = () => {
+  freqSrc = b.dataset.f; $$('#gFreq [data-f]').forEach(x => x.classList.toggle('on', x === b)); if (S) render();
+});
+$$('#profCards .card').forEach(b => b.onclick = () => set('profile', b.dataset.v));
+$$('#fanCards .card').forEach(b => b.onclick = () => set('fan', b.dataset.v));
+$$('#battOpts .opt').forEach(b => b.onclick = () => set('battLimit', b.dataset.v));
+$('#switchOpt').onclick = () => set('autoSwitch', S && S.autoSwitch ? 0 : 1);
+$('#autoOpt').onclick =() => set('autostart', S && S.autostart ? 0 : 1);
+['#sCpu', '#sGpu'].forEach((sl, i) => {
+  const el = $(sl), lb = ['#vCpu', '#vGpu'][i];
+  el.oninput = () => { txt(lb, el.value); el.style.setProperty('--p', ((el.value - 20) / 80 * 100) + '%'); };
+  el.onchange = () => set(el.dataset.k, el.value);
+});
+document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(); });
+
+poll(); setInterval(poll, 1500);
+</script>
+</body>
+</html>
