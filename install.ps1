@@ -40,7 +40,7 @@ try {
 
     $u = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\NitroControl'
     New-Item $u -Force | Out-Null
-    $vals = @{ DisplayName = 'NitroControl'; DisplayVersion = '1.0'; Publisher = 'NitroControl'; DisplayIcon = "$dest\icon.ico"
+    $vals = @{ DisplayName = 'NitroControl'; DisplayVersion = '1.0.1'; Publisher = 'NitroControl'; DisplayIcon = "$dest\icon.ico"
         InstallLocation = $dest; UninstallString = "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$dest\uninstall.ps1`"" }
     $vals.GetEnumerator() | % { New-ItemProperty $u -Name $_.Key -Value $_.Value -PropertyType String -Force | Out-Null }
     'NoModify', 'NoRepair' | % { New-ItemProperty $u -Name $_ -Value 1 -PropertyType DWord -Force | Out-Null }
