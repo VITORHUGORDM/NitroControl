@@ -146,6 +146,8 @@ function Set-AutoSwitch($on) { Set-Task $powerTask $on @(New-EventTrigger 'Micro
 function Apply-Saved {
     $c = Load-Cfg; $ac = Is-AC; $prof = $c['profile']; $fan = $c['fan']
     if (-not $c.Count) { Log "nada salvo em $cfgPath"; return }
+    # velocidade salva sem modo salvo: o controle so fica ativo no Personalizado, entao o modo era esse
+    if ($null -eq $fan -and ($null -ne $c['cpuPct'] -or $null -ne $c['gpuPct'])) { $fan = 3 }
     if ($c['autoSwitch'] -eq 1) {
         $prof = if ($ac) { if ($null -ne $c['profileAC']) { $c['profileAC'] } else { 4 } }
                 else { if ($null -ne $c['profileDC']) { $c['profileDC'] } else { 1 } }
@@ -198,6 +200,8 @@ function Set-Value($k, [int]$v, [switch]$NoSave) {
     }
     if ($NoSave) { return }
     Save-Cfg $k $v  # so chega aqui se a BIOS aceitou
+    # mexer na velocidade so e possivel no Personalizado: salva o modo junto, senao o -Apply pula a velocidade
+    if ($k -like '*Pct') { Save-Cfg fan 3 }
     # com troca automatica, o modo escolhido vira o padrao da fonte de energia atual (igual ao NitroSense)
     if ($k -eq 'profile' -and (Load-Cfg)['autoSwitch'] -eq 1) { Save-Cfg $(if (Is-AC) { 'profileAC' } else { 'profileDC' }) $v }
 }
