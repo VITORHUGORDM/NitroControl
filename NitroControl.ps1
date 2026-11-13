@@ -30,8 +30,30 @@ if (-not $Port -and -not $Apply) {
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Windows.Forms
 
-$wmi = Get-CimInstance -Namespace root\WMI -ClassName AcerGamingFunction
-$cls = Get-CimClass -Namespace root\WMI -ClassName AcerGamingFunction
+# -Apply roda escondido no login: registra o que fez em apply.log para dar para ver se funcionou
+$logPath = "$env:LOCALAPPDATA\NitroControl\apply.log"
+function Log($m) {
+    if (-not $Apply) { return }
+    try {
+        New-Item -ItemType Directory -Force (Split-Path $logPath) | Out-Null
+        if ((Test-Path $logPath) -and (Get-Item $logPath).Length -gt 100KB) { Remove-Item $logPath }
+        Add-Content $logPath "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') $m"
+    } catch {}
+}
+Log "inicio (usuario $env:USERNAME, tomada: $([Windows.Forms.SystemInformation]::PowerStatus.PowerLineStatus))"
+
+# logo apos o boot o WMI da Acer pode ainda nao estar pronto: no -Apply tenta por ate 40 s (a tarefa tem limite de 2 min)
+for ($i = 0; ; $i++) {
+    try {
+        $wmi = Get-CimInstance -Namespace root\WMI -ClassName AcerGamingFunction
+        $cls = Get-CimClass -Namespace root\WMI -ClassName AcerGamingFunction
+        if ($wmi) { break }
+        throw 'AcerGamingFunction nao encontrado.'
+    } catch {
+        if (-not $Apply -or $i -ge 20) { Log "ERRO: WMI da Acer nao respondeu: $($_.Exception.Message)"; throw }
+        Start-Sleep 2
+    }
+}
 $bat = Get-CimInstance -Namespace root\WMI -ClassName BatteryControl -ErrorAction SilentlyContinue
 
 function Call($method, $value) {
@@ -123,6 +145,7 @@ function Set-AutoSwitch($on) { Set-Task $powerTask $on @(New-EventTrigger 'Micro
 # Reaplica o que foi salvo. Com troca automatica: modo da tomada/bateria e, na bateria, ventoinhas no automatico.
 function Apply-Saved {
     $c = Load-Cfg; $ac = Is-AC; $prof = $c['profile']; $fan = $c['fan']
+    if (-not $c.Count) { Log "nada salvo em $cfgPath"; return }
     if ($c['autoSwitch'] -eq 1) {
         $prof = if ($ac) { if ($null -ne $c['profileAC']) { $c['profileAC'] } else { 4 } }
                 else { if ($null -ne $c['profileDC']) { $c['profileDC'] } else { 1 } }
@@ -132,7 +155,8 @@ function Apply-Saved {
     foreach ($k in $plan.Keys) {
         if ($null -eq $plan[$k]) { continue }
         if ($k -like '*Pct' -and $fan -ne 3) { continue }  # velocidade so vale no modo personalizado
-        try { Set-Value $k $plan[$k] -NoSave } catch {}  # ex.: Desempenho recusado na bateria
+        try { Set-Value $k $plan[$k] -NoSave; Log "$k = $($plan[$k]) ok" }
+        catch { Log "$k = $($plan[$k]) FALHOU: $($_.Exception.Message)" }  # ex.: Desempenho recusado na bateria
     }
 }
 
@@ -178,7 +202,17 @@ function Set-Value($k, [int]$v, [switch]$NoSave) {
     if ($k -eq 'profile' -and (Load-Cfg)['autoSwitch'] -eq 1) { Save-Cfg $(if (Is-AC) { 'profileAC' } else { 'profileDC' }) $v }
 }
 
-if ($Apply) { Apply-Saved; exit }
+if ($Apply) {
+    try {
+        Apply-Saved
+        # a BIOS/servicos da Acer podem voltar as ventoinhas para o automatico logo depois do login: reaplica
+        Start-Sleep 40
+        Log 'segunda passada'
+        Apply-Saved
+        Log 'fim'
+    } catch { Log "ERRO: $($_.Exception.Message)"; exit 1 }
+    exit
+}
 $script:autostart = Test-Task $taskName
 
 $listener = New-Object Net.HttpListener
